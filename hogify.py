@@ -7,7 +7,7 @@ import requests
 # Assets directory; if it does not exist, gathers resources from online
 assets_dir = "assets"
 # Location in which to download and release the feral hogs
-your_homestead = ""
+your_yard = ""
 # Local hog photo directory in assets directory
 hogsty = "hogpics"
 # Local names file in assets directory
@@ -25,7 +25,7 @@ verbose = False and feedback
 # A perhaps unuseful amount of verbage
 very_verbose = False and verbose
 # Forces the use of remote name and hog photo lists
-force_remote = False
+force_remote = True
 
 
 # Wrangles the local hogs in your area or goes on an expedition to git for them
@@ -72,24 +72,24 @@ def get_local_names():
     names = list(json.load(f))
     return names
 
-# Either copies local hogs or writes the locally stored hogs to the homestead
+# Either copies local hogs or writes the locally stored hogs to the yard
 def download_feral_hog(local_hogs_in_your_area: bool, name: str, hogs):
     if local_hogs_in_your_area:
         if very_verbose: print("Copying hog!!")
         pic = os.path.join(assets_dir,hogsty,random.choice(hogs))
         pic_ext = "."+pic.split('.')[1]
-        destination = os.path.join(your_homestead,name+pic_ext)
+        destination = os.path.join(your_yard,name+pic_ext)
         shutil.copy(pic,destination)
     else:
         if very_verbose: print("Writing hog!!")
         hog = random.choice(list(hogs.keys()))
         pic_ext = "."+hog.split('.')[1] # split hog
-        destination = os.path.join(your_homestead,name+pic_ext)
+        destination = os.path.join(your_yard,name+pic_ext)
         with open(destination, 'wb') as handler:
             handler.write(hogs.get(hog)) # write that hog!!
 
 
-# downloads 30-50 feral hogs to your homestead
+# downloads 30-50 feral hogs to your yard
 def main():
     local_hogs_in_your_area = True if os.path.exists(assets_dir) and not force_remote else False
 
