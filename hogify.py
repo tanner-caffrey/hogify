@@ -2,33 +2,110 @@ import json
 import shutil
 import os
 import random
+import requests
 
+# Configuration directory; if it does not exist, gathers resources from online
 conf_dir = "config"
+# Location in which to download and release the feral hogs
 your_homestead = ".."
+# Local hog photo directory in configuration directory
 hogsty = "hogpics"
+# Local names file in configuration directory
+roster = "names.json"
+# Remote location of hog photos
+remote_hogsty = "https://api.github.com/repos/tanner-caffrey/hogify/contents/config/hogpics"
+# Remote location of names
+remote_names = "https://raw.githubusercontent.com/dominictarr/random-name/master/first-names.json"
 
-# downloads 30-50 feral hogs to your homestead (default: parent of current directory)
-def main():
-    local_hogs_in_your_area = True if os.path.exists(conf_dir) else False
-    if not local_hogs_in_your_area:
-        pass
-    names_path = os.path.join(conf_dir,"names.json")
-    f = open(names_path)
-    names = list(json.load(f))
+# Enable stdout feedback
+feedback = True
+# More print statements
+verbose = False and feedback
+# A perhaps unuseful amount of verbage
+very_verbose = False and verbose
+# Forces the use of remote name and hog photo lists
+force_remote = False
 
+
+# Wrangles the local hogs in your area or goes on an expedition to git for them
+def get_hogs(local_hogs_in_your_area: bool):
+    if local_hogs_in_your_area:
+        return get_local_hogs()
+    return download_hogs()
+
+# free hog pics in your area
+# Downloads hogs from github to local memory
+def download_hogs():
+    if verbose: print("Wrangling remote hogs.")
+    r = requests.get(remote_hogsty)
+    hog_data = r.json()
+    hog_urls = [(hog["name"], hog["download_url"]) for hog in hog_data]
+    hogs = {hog[0]: requests.get(hog[1]).content for hog in hog_urls}  # uh oh can a list contain that many entire hogs
+    return hogs
+
+# Gets the local hogs in your area if they exist
+def get_local_hogs():
+    if verbose: print("Getting local hogs.")
     pics_path = os.path.join(conf_dir,hogsty)
     pics = [f for f in os.listdir(pics_path) if "hog" in f and "py" not in f]
+    return pics
+
+# Gets list of names based on if local config exists
+def get_names(local_hogs_in_your_area: bool):
+    if local_hogs_in_your_area:
+        return get_local_names()
+    return download_names()
+
+# Gets list of names from git
+def download_names():
+    if verbose: print("Downloading names.")
+    r = requests.get(remote_names)
+    names = list(r.json())
+    return names
+
+# Gets list of names from config folder
+def get_local_names():
+    if verbose: print("Getting local names.")
+    names_path = os.path.join(conf_dir,roster)
+    f = open(names_path)
+    names = list(json.load(f))
+    return names
+
+# Either copies local hogs or writes the locally stored hogs to the homestead
+def download_feral_hog(local_hogs_in_your_area: bool, name: str, hogs):
+    if local_hogs_in_your_area:
+        if very_verbose: print("Copying hog!!")
+        pic = os.path.join(conf_dir,hogsty,random.choice(hogs))
+        pic_ext = "."+pic.split('.')[1]
+        destination = os.path.join(your_homestead,name+pic_ext)
+        shutil.copy(pic,destination)
+    else:
+        if very_verbose: print("Writing hog!!")
+        hog = random.choice(list(hogs.keys()))
+        pic_ext = "."+hog.split('.')[1] # split hog
+        destination = os.path.join(your_homestead,name+pic_ext)
+        with open(destination, 'wb') as handler:
+            handler.write(hogs.get(hog)) # write that hog!!
+
+
+# downloads 30-50 feral hogs to your homestead
+def main():
+    local_hogs_in_your_area = True if os.path.exists(conf_dir) and not force_remote else False
+
+    if feedback and local_hogs_in_your_area: print("Local hogs in your area. 👀") # 👀
+
+    hogs = get_hogs(local_hogs_in_your_area)
+    names = get_names(local_hogs_in_your_area)
 
     # how many hogs?
     number_of_feral_hogs = random.randint(30,50)
 
-    print("Downloading",number_of_feral_hogs,"feral hogs.") # oh fuck
+    if feedback: print("Downloading",number_of_feral_hogs,"feral hogs.") # ohgod oh fjuck
 
     for n in range(number_of_feral_hogs):
         name = random.choice(names)
-        pic = os.path.join(pics_path,random.choice(pics))
-        destination = os.path.join(your_homestead,name+"."+pic.split('.')[1])
-        shutil.copy(pic,destination)
+        download_feral_hog(local_hogs_in_your_area, name, hogs)
+
 
 if __name__ == "__main__":
     main()
