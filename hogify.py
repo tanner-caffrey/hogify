@@ -4,18 +4,19 @@ import os
 import random
 import requests
 
-# Configuration directory; if it does not exist, gathers resources from online
-conf_dir = "config"
+# Assets directory; if it does not exist, gathers resources from online
+assets_dir = "assets"
 # Location in which to download and release the feral hogs
-your_homestead = ".."
-# Local hog photo directory in configuration directory
+your_homestead = ""
+# Local hog photo directory in assets directory
 hogsty = "hogpics"
-# Local names file in configuration directory
+# Local names file in assets directory
 roster = "names.json"
 # Remote location of hog photos
-remote_hogsty = "https://api.github.com/repos/tanner-caffrey/hogify/contents/config/hogpics"
+remote_hogsty = "https://api.github.com/repos/tanner-caffrey/hogify/contents/assets/hogpics"
 # Remote location of names
 remote_names = "https://raw.githubusercontent.com/dominictarr/random-name/master/first-names.json"
+
 
 # Enable stdout feedback
 feedback = True
@@ -46,7 +47,7 @@ def download_hogs():
 # Gets the local hogs in your area if they exist
 def get_local_hogs():
     if verbose: print("Getting local hogs.")
-    pics_path = os.path.join(conf_dir,hogsty)
+    pics_path = os.path.join(assets_dir,hogsty)
     pics = [f for f in os.listdir(pics_path) if "hog" in f and "py" not in f]
     return pics
 
@@ -66,7 +67,7 @@ def download_names():
 # Gets list of names from config folder
 def get_local_names():
     if verbose: print("Getting local names.")
-    names_path = os.path.join(conf_dir,roster)
+    names_path = os.path.join(assets_dir,roster)
     f = open(names_path)
     names = list(json.load(f))
     return names
@@ -75,7 +76,7 @@ def get_local_names():
 def download_feral_hog(local_hogs_in_your_area: bool, name: str, hogs):
     if local_hogs_in_your_area:
         if very_verbose: print("Copying hog!!")
-        pic = os.path.join(conf_dir,hogsty,random.choice(hogs))
+        pic = os.path.join(assets_dir,hogsty,random.choice(hogs))
         pic_ext = "."+pic.split('.')[1]
         destination = os.path.join(your_homestead,name+pic_ext)
         shutil.copy(pic,destination)
@@ -90,7 +91,7 @@ def download_feral_hog(local_hogs_in_your_area: bool, name: str, hogs):
 
 # downloads 30-50 feral hogs to your homestead
 def main():
-    local_hogs_in_your_area = True if os.path.exists(conf_dir) and not force_remote else False
+    local_hogs_in_your_area = True if os.path.exists(assets_dir) and not force_remote else False
 
     if feedback and local_hogs_in_your_area: print("Local hogs in your area. 👀") # 👀
 
