@@ -27,13 +27,17 @@ REMOTE_HOGSTY = "https://api.github.com/repos/tanner-caffrey/hogify/contents/ass
 REMOTE_NAMES = "https://raw.githubusercontent.com/dominictarr/random-name/master/first-names.json"
 
 # Enable to turn off writing data
-DEBUG=True
+SPOOF = True
+if SPOOF :
+    print("SPOOFing ON.")
 
 # Forces the use of remote name and hog photo lists
 FORCE_REMOTE = True
 
 # Set logging level based on verbosity
-log = logging.getLogger("hogify.log")
+log = logging.getLogger(__name__)
+ch = logging.StreamHandler()
+log.addHandler(ch)
 
 def get_hogs(local_hogs_in_your_area: bool):
     """Wrangles the local hogs in your area or goes on an expedition to git for them"""
@@ -66,31 +70,31 @@ def get_names(local_hogs_in_your_area: bool):
 
 def download_names():
     """Gets list of names from git"""
-    log.debug("Downloading names.")
+    log.info("Downloading names.")
     r = requests.get(REMOTE_NAMES)
     names = list(r.json())
     return names
 
 def get_local_names():
     """Gets list of names from config folder"""
-    log.debug("Getting local names.")
+    log.info("Getting local names.")
     names_path = os.path.join(ASSETS_DIR,ROSTER)
     with open(names_path) as f:
         return list(json.load(f))
 
 def download_feral_hog(local_hogs_in_your_area: bool, name: str, hogs):
     """Either copies local hogs or writes the locally stored hogs to the yard"""
-    if DEBUG:
-        log.log(5, "Theoretically releasing hog! Say hola to %(name)s!")
+    if SPOOF:
+        log.debug("Theoretically releasing hog! Say hola to %s!", name)
         return
     if local_hogs_in_your_area:
-        log.log(5, "Copying hog!! Say hello to %(name)s!")
+        log.debug("Copying hog!! Say hello to %s!", name)
         pic = os.path.join(ASSETS_DIR,HOGSTY,random.choice(hogs))
         pic_ext = "."+pic.split('.')[1]
         destination = os.path.join(YOUR_YARD,name+pic_ext)
         shutil.copy(pic,destination)
     else:
-        log.log(5, "Writing hog!! Say hello to %(name)s!")
+        log.debug("Writing hog!! Say hello to %s!", name)
         hog = random.choice(list(hogs.keys()))
         pic_ext = "."+hog.split('.')[1] # split hog
         destination = os.path.join(YOUR_YARD,name+pic_ext)
@@ -103,33 +107,33 @@ def process_arguments():
                     prog = 'hogify',
                     description = 'Releases 30-50 feral hogs into your system.',
                     epilog = 'good luck')
-    parser.add_argument('filename')
     parser.add_argument('-v', '--verbose',
                         dest='verbose',
                         action='store_true',
                         help='Enable verbose logging.')
-    parser.add_argument('-vv', '--very_verbose', '--vverbose', '--veryverbose', '--veryVerbose',
-                        dest='very_verbose',
-                        action='store_true',
-                        help='Enable very verbose logging.')
-    parser.add_argument('-l', '--logging',
-                        dest='feedback',
-                        action='store_true',
-                        help='Enable logging.')
     parser.add_argument('-r', '--remote',
                         dest='force_remote',
                         action='store_true',
-                        help='Force using remote assets.')     
+                        help='Force using remote assets.')
     parser.add_argument('-d', '--debug',
                         dest='debug_mode',
                         action='store_true',
                         help='Enable debug mode')
     parser.add_argument('-n',
-                        type=int, 
-                        default=random.randint(30,50), 
+                        type=check_positive,
+                        default=random.randint(30,50),
                         dest='number_of_feral_hogs',
+                        metavar='N',
                         help='Number of feral hogs to release.')
-    return parser.parse_args()
+    args = parser.parse_args()
+    return args
+
+def check_positive(value):
+    """Checks for a positive value for argument parsing"""
+    ivalue = int(value)
+    if ivalue <= 0:
+        raise argparse.ArgumentTypeError("%(value)d is an invalid positive int value")
+    return ivalue
 
 def main():
     """downloads 30-50 feral hogs to your yard"""
@@ -137,21 +141,16 @@ def main():
     # Process arguments
     args = process_arguments()
 
-    # Set logging level
-    if args.very_verbose:
-        log.setLevel(5)
-    elif args.verbose:
-        log.setLevel(10)
-    elif args.feedback:
-        log.setLevel(20)
-    else:
-        log.setLevel(40)
-    log.log(40 * DEBUG, "Debug mode ON.")
-
     # Set flags
+    global FORCE_REMOTE
     FORCE_REMOTE = args.force_remote
-    DEBUG = args.debug
 
+    # Set logging level
+    if args.debug_mode:
+        log.setLevel(logging.DEBUG)
+        log.debug("Debug mode ON.")
+    elif args.verbose:
+        log.setLevel(logging.INFO)
 
 
     local_hogs_in_your_area = os.path.exists(ASSETS_DIR) and not FORCE_REMOTE
@@ -165,12 +164,12 @@ def main():
     # how many hogs?
     number_of_feral_hogs = args.number_of_feral_hogs
 
-    log.info("Downloading %(number_of_feral_hogs)d feral hogs.") # ohgod oh fjuck
+    log.info("Downloading %d feral hog%s.", number_of_feral_hogs, 's'*(number_of_feral_hogs-1)) # ohgod oh fjuck
 
     for _ in range(number_of_feral_hogs):
         name = random.choice(names)
         download_feral_hog(local_hogs_in_your_area, name, hogs)
 
-
+# run those hogs
 if __name__ == "__main__":
     main()
